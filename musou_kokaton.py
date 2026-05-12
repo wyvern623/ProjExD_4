@@ -108,10 +108,10 @@ class Bird(pg.sprite.Sprite):
 
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.dire = tuple(sum_mv)
-            self.image = self.imgs[self.dire]
 
+        self.image = self.imgs[self.dire]
         if self.state == "hyper":
-            self.image = pg.transform.laplacian(self.image)
+            self.image = pg.transform.laplacian(self.imgs[self.dire])
             self.hyper_life -= 1
             if self.hyper_life < 0:
                 self.state = "normal"
@@ -397,7 +397,7 @@ def main():
     gravities = pg.sprite.Group()
 
     def activate_shield():
-        if score.value >= SHIELD_COST and len(shields) == 0:
+        if score.value > SHIELD_COST and len(shields) == 0:
             shields.add(Shield(bird, SHIELD_LIFE))
             score.value -= SHIELD_COST
 
@@ -411,16 +411,16 @@ def main():
                 return 0
 
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
-                if key_lst[pg.K_LSHIFT]:
+                if event.mod & pg.KMOD_LSHIFT:
                     beams.add(*NeoBeam(bird, DANMAKU_NUM).gen_beams())
                 else:
                     beams.add(Beam(bird))
 
-            if event.type == pg.KEYDOWN and event.key == pg.K_e and score.value >= 20:
+            if event.type == pg.KEYDOWN and event.key == pg.K_e and score.value > 20:
                 score.value -= 20
                 EMP(emys, bombs, screen)
 
-            if event.type == pg.KEYDOWN and event.key == pg.K_RSHIFT and score.value >= 100:
+            if event.type == pg.KEYDOWN and event.key == pg.K_RSHIFT and score.value > 100:
                 bird.state = "hyper"
                 bird.hyper_life = 500
                 score.value -= 100
@@ -428,13 +428,10 @@ def main():
             if event.type == pg.KEYDOWN and event.key == pg.K_s:
                 activate_shield()
 
-            if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and score.value >= GRAVITY_COST:
+            if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and score.value > GRAVITY_COST:
                 if len(gravities) == 0:
                     score.value -= GRAVITY_COST
                     gravities.add(Gravity(GRAVITY_LIFE))
-
-        if key_lst[pg.K_s]:
-            activate_shield()
 
         screen.blit(bg_img, [0, 0])
 
