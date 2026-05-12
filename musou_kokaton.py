@@ -357,13 +357,11 @@ def main():
     tmr = 0
     clock = pg.time.Clock()
     while True:
+        key_lst = pg.key.get_pressed()
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
-            if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
-                key_lst = pg.key.get_pressed()
-
                 if key_lst[pg.K_LSHIFT]:
                     beams.add(*NeoBeam(bird, DANMAKU_NUM).gen_beams())
                 else:
@@ -380,6 +378,8 @@ def main():
 
             if event.type == pg.KEYDOWN and event.key == pg.K_s:
                 activate_shield()
+        if key_lst[pg.K_s]:
+            activate_shield()
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
@@ -403,7 +403,6 @@ def main():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
 
         for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
-        for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
             if bomb.state == "inactive":
                 continue  # 爆弾が非アクティブならダメージを受けない
 
@@ -412,11 +411,6 @@ def main():
                 score.value += 1  # 1点アップ
                 continue
 
-            bird.change_img(8, screen)  # こうかとん悲しみエフェクト
-            score.update(screen)
-            pg.display.update()
-            time.sleep(2)
-            return
             bird.change_img(8, screen)  # こうかとん悲しみエフェクト
             score.update(screen)
             pg.display.update()
