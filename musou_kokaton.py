@@ -335,6 +335,7 @@ def main():
         clock.tick(50)
 
 
+# メイン
 if __name__ == "__main__":
     pg.init()
     main()
