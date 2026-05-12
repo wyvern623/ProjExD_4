@@ -8,6 +8,7 @@ import pygame as pg
 
 WIDTH = 1100  # ゲームウィンドウの幅
 HEIGHT = 650  # ゲームウィンドウの高さ
+DANMAKU_NUM = 5  # こうかとん弾幕で一度に発射するビームの数
 SHIELD_COST = 50  # 防御壁の消費スコア
 SHIELD_LIFE = 400  # 防御壁の発動時間
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -74,6 +75,8 @@ class Bird(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = xy
         self.speed = 10
+        self.state = "normal"
+        self.hyper_life = 0
 
     def change_img(self, num: int, screen: pg.Surface):
         """
@@ -101,6 +104,12 @@ class Bird(pg.sprite.Sprite):
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.dire = tuple(sum_mv)
             self.image = self.imgs[self.dire]
+        if self.state == "hyper":
+            self.image = pg.transform.laplacian(self.image)
+            self.hyper_life -= 1
+            if self.hyper_life < 0:
+                self.state = "normal"
+                self.image = self.imgs[self.dire]
         screen.blit(self.image, self.rect)
 
 
@@ -144,14 +153,16 @@ class Beam(pg.sprite.Sprite):
     """
     ビームに関するクラス
     """
-    def __init__(self, bird: Bird):
+    def __init__(self, bird: Bird, angle0: int = 0):
         """
         ビーム画像Surfaceを生成する
         引数 bird：ビームを放つこうかとん
+        引数 angle0：ビームの回転角度に加算する角度
         """
         super().__init__()
         self.vx, self.vy = bird.dire
         angle = math.degrees(math.atan2(-self.vy, self.vx))
+        angle += angle0
         self.image = pg.transform.rotozoom(pg.image.load(f"fig/beam.png"), angle, 1.0)
         self.vx = math.cos(math.radians(angle))
         self.vy = -math.sin(math.radians(angle))
@@ -201,6 +212,31 @@ class Shield(pg.sprite.Sprite):
         self.life -= 1
         if self.life < 0:
             self.kill()
+
+
+class NeoBeam:
+    """
+    こうかとんの弾幕に関するクラス
+    """
+    def __init__(self, bird: Bird, num: int):
+        """
+        複数方向へ発射するビームを生成する
+        引数1 bird：弾幕を放つこうかとん
+        引数2 num：弾幕ビームの数
+        """
+        self.bird = bird
+        self.num = num
+
+    def gen_beams(self) -> list[Beam]:
+        """
+        -50度から+50度の範囲でnum本のBeamインスタンスを生成し，リストで返す
+        """
+        if self.num <= 1:
+            angles = [0]
+        else:
+            step = 100//(self.num-1)
+            angles = range(-50, +51, step)
+        return [Beam(self.bird, angle) for angle in angles]
 
 
 class Explosion(pg.sprite.Sprite):
@@ -303,7 +339,14 @@ def main():
             if event.type == pg.QUIT:
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
-                beams.add(Beam(bird))
+                if key_lst[pg.K_LSHIFT]:
+                    beams.add(*NeoBeam(bird, DANMAKU_NUM).gen_beams())
+                else:
+                    beams.add(Beam(bird))
+            if event.type == pg.KEYDOWN and event.key == pg.K_RSHIFT and score.value >= 100:
+                bird.state = "hyper"
+                bird.hyper_life = 500
+                score.value -= 100
             if event.type == pg.KEYDOWN and event.key == pg.K_s:
                 activate_shield()
 
@@ -333,6 +376,10 @@ def main():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
 
         for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
+            if bird.state == "hyper":
+                exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+                score.value += 1  # 1点アップ
+                continue
             bird.change_img(8, screen)  # こうかとん悲しみエフェクト
             score.update(screen)
             pg.display.update()
